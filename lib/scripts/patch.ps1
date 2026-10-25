@@ -185,12 +185,26 @@ foreach ($revert in $reverts) {
 }
 
 foreach ($patch in $patches) {
-    git apply "$env:GITHUB_WORKSPACE/$patch"
+    $patchPath = "$env:GITHUB_WORKSPACE/$patch"
+    git apply --check $patchPath 2>$null
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "$patch applied"
-    } else {
+        git apply $patchPath
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "$patch applied"
+            continue
+        }
         throw "$LASTEXITCODE"
     }
+
+    # CI 会缓存 Flutter SDK（subosito/flutter-action 的 cache），缓存里的 SDK
+    # 可能已经打过补丁。此时正向 apply 校验失败、反向撤销校验能过，视为已应用。
+    git apply --reverse --check $patchPath 2>$null
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "$patch already applied (cached sdk), skip"
+        continue
+    }
+
+    throw "patch failed: $patch"
 }
 
 Set-Location $env:GITHUB_WORKSPACE
