@@ -261,7 +261,9 @@ class _VideoHeroSafePageTransitionsBuilder extends PageTransitionsBuilder {
     Animation<double> secondaryAnimation,
     Widget child,
   ) {
-    if (route.settings.name == '/videoV') {
+    // 正常 push/pop 用无位移淡入保证 Hero 落点准确；
+    // 预测性返回手势期间交回系统手势转场（Hero 靠 transitionOnUserGestures 参与）
+    if (route.settings.name == '/videoV' && !route.popGestureInProgress) {
       return FadeTransition(
         opacity: animation.drive(CurveTween(curve: Curves.easeOut)),
         child: child,
