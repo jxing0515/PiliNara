@@ -545,6 +545,9 @@ abstract final class PageUtils {
     Dimension? dimension,
     int? rootRpId,
     int? secondRpId,
+    /// 列表卡片传下来的共享元素 tag（需与卡片 Hero 一致）；
+    /// 不传则内部随机生成（无 Hero 源的入口）
+    String? heroTag,
   }) {
     final arguments = {
       'aid': aid ?? IdUtils.bv2av(bvid!),
@@ -558,7 +561,7 @@ abstract final class PageUtils {
       'progress': ?progress,
       'videoType': videoType,
       'isVertical': dimension?.isVertical ?? isVertical,
-      'heroTag': Utils.makeHeroTag(cid),
+      'heroTag': heroTag ?? Utils.makeHeroTag(cid),
       rootRpIdKey: ?rootRpId,
       secondRpIdKey: ?secondRpId,
       ...?extraArguments,

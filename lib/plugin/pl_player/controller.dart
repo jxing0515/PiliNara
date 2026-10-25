@@ -1,5 +1,6 @@
 import 'dart:async' show Completer, StreamSubscription, Timer, unawaited;
 import 'dart:convert' show ascii, utf8;
+import 'dart:ffi' as ffi;
 import 'dart:io' show Platform;
 import 'dart:math' show max, min;
 import 'dart:ui' as ui;
@@ -122,6 +123,60 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
   late double lastPlaybackSpeed = 1.0;
   final RxDouble _playbackSpeed = Pref.playSpeedDefault.obs;
   late final RxDouble _longPressSpeed = Pref.longPressSpeedDefault.obs;
+
+  /// 键盘快捷键（Z/X/C）倍速提示，显示于播放器中下部
+  final RxDouble keyboardSpeedToast = RxDouble(0.0);
+  Timer? _keyboardSpeedTimer;
+
+  void showKeyboardSpeedToast(double speed) {
+    keyboardSpeedToast.value = speed;
+    _keyboardSpeedTimer?.cancel();
+    _keyboardSpeedTimer = Timer(const Duration(seconds: 1), () {
+      keyboardSpeedToast.value = 0.0;
+    });
+  }
+
+  /// Z 键用：最近一次非 1.0x 的倍速（1.0x ⇄ 该倍速切换）
+  double? _lastManualSpeed;
+
+  /// Z 键：当前不是 1.0x 就记下并回到 1.0x；已经是 1.0x 就切回上次倍速
+  Future<void> toggleNormalSpeed() async {
+    final current = playbackSpeed;
+    if ((current - 1.0).abs() < 0.001) {
+      final restore = _lastManualSpeed;
+      if (restore == null || (restore - 1.0).abs() < 0.001) {
+        showKeyboardSpeedToast(1.0);
+        return;
+      }
+      await setManualPlaybackSpeed(restore);
+      showKeyboardSpeedToast(restore);
+    } else {
+      _lastManualSpeed = current;
+      await setManualPlaybackSpeed(1.0);
+      showKeyboardSpeedToast(1.0);
+    }
+  }
+
+  /// 是否是我们把中文输入法切成英文的（离开播放器时要还原）
+  bool _imeRestoreOpen = false;
+
+  /// 播放器拿到焦点 / 点击播放器时调用：当前是中文输入法就切英文。
+  ///
+  /// Windows 上开着中文输入法时字母键会先被 IME 组词，Flutter 收不到 Z/X/C。
+  void keepImeEnglish() {
+    if (_imeRestoreOpen) return;
+    if (_WindowsIme.isOpen() == true) {
+      _imeRestoreOpen = true;
+      _WindowsIme.setOpen(false);
+    }
+  }
+
+  /// 还原进播放器前的中文输入法状态（失焦 / 播放器销毁时调用）。
+  void restoreIme() {
+    if (!_imeRestoreOpen) return;
+    _imeRestoreOpen = false;
+    _WindowsIme.setOpen(true);
+  }
 
   final RxDouble volume = RxDouble(
     PlatformUtils.isDesktop ? Pref.desktopVolume : 1.0,
@@ -2639,6 +2694,9 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
     speedLocked = false;
     _speedLockArmed = false;
     speedLockHint.value = SpeedLockHint.none;
+    _keyboardSpeedTimer?.cancel();
+    // 播放器销毁时还原输入法，避免离开视频页后一直停在英文
+    restoreIme();
     _cancelSubForSeek();
     if (!_isCloseAll && _playerCount > 1) {
       _playerCount -= 1;
@@ -2667,6 +2725,7 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
     }
     _timer?.cancel();
     persistVideoPictureSettings();
+    _keyboardSpeedTimer?.cancel();
     // _position.close();
     // _playerEventSubs?.cancel();
     // _sliderPosition.close();
@@ -3013,5 +3072,76 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
       return;
     }
     Get.back();
+  }
+}
+
+/// Windows 输入法（IME）开关状态读写：Z/X/C 快捷键用。
+///
+/// Windows 上开着中文输入法时字母键会先被 IME 拿去组词，
+/// Flutter 的 Focus.onKeyEvent 收不到，所以播放器聚焦时要把输入法切英文。
+/// 仅 Windows 生效，DLL 懒加载，失败静默降级（其它平台直接返回）。
+class _WindowsIme {
+  static bool _inited = false;
+  static bool _available = false;
+  static late int Function() _getActiveWindow;
+  static late int Function(int) _immGetContext;
+  static late int Function(int, int) _immSetOpenStatus;
+  static late int Function(int) _immGetOpenStatus;
+  static late int Function(int, int) _immReleaseContext;
+
+  static bool get _ok {
+    if (!_inited) {
+      _inited = true;
+      if (Platform.isWindows) {
+        try {
+          final user32 = ffi.DynamicLibrary.open('user32.dll');
+          final imm32 = ffi.DynamicLibrary.open('imm32.dll');
+          _getActiveWindow = user32.lookupFunction<ffi.IntPtr Function(),
+              int Function()>('GetActiveWindow');
+          _immGetContext = imm32.lookupFunction<ffi.IntPtr Function(ffi.IntPtr),
+              int Function(int)>('ImmGetContext');
+          _immSetOpenStatus = imm32.lookupFunction<
+              ffi.Int32 Function(ffi.IntPtr, ffi.Int32),
+              int Function(int, int)>('ImmSetOpenStatus');
+          _immGetOpenStatus = imm32.lookupFunction<ffi.Int32 Function(ffi.IntPtr),
+              int Function(int)>('ImmGetOpenStatus');
+          _immReleaseContext = imm32.lookupFunction<
+              ffi.Int32 Function(ffi.IntPtr, ffi.IntPtr),
+              int Function(int, int)>('ImmReleaseContext');
+          _available = true;
+        } catch (_) {
+          _available = false;
+        }
+      }
+    }
+    return _available;
+  }
+
+  /// 当前输入法是否处于「中文（打开）」状态；未知返回 null
+  static bool? isOpen() {
+    if (!_ok) return null;
+    final hwnd = _getActiveWindow();
+    if (hwnd == 0) return null;
+    final himc = _immGetContext(hwnd);
+    if (himc == 0) return null;
+    try {
+      return _immGetOpenStatus(himc) != 0;
+    } finally {
+      _immReleaseContext(hwnd, himc);
+    }
+  }
+
+  /// 切换输入法中/英文状态（false = 英文）
+  static void setOpen(bool open) {
+    if (!_ok) return;
+    final hwnd = _getActiveWindow();
+    if (hwnd == 0) return;
+    final himc = _immGetContext(hwnd);
+    if (himc == 0) return;
+    try {
+      _immSetOpenStatus(himc, open ? 1 : 0);
+    } finally {
+      _immReleaseContext(hwnd, himc);
+    }
   }
 }

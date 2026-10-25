@@ -7,6 +7,7 @@ import 'package:PiliPlus/common/widgets/custom_icon.dart';
 import 'package:PiliPlus/common/widgets/flutter/pop_scope.dart';
 import 'package:PiliPlus/common/widgets/flutter/popup_menu.dart';
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
+import 'package:PiliPlus/common/widgets/image_viewer/hero.dart';
 import 'package:PiliPlus/common/widgets/keep_alive_wrapper.dart';
 import 'package:PiliPlus/common/widgets/pip_mini_video_content.dart';
 import 'package:PiliPlus/common/widgets/route_aware_mixin.dart';
@@ -2273,6 +2274,32 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
         ),
 
         plPlayer(width: width, height: height),
+
+        // 共享元素目标：始终构建、透明且不参与点击，只把封面图交给 Hero 飞行层。
+        // 注意别把播放器放进 Hero —— 旧实现因此让 videoPlayer 渲染两次
+        // （f7e9fbaea），列表侧删 Hero 也是为了避免这类页面重建问题（#92）。
+        Positioned.fill(
+          child: IgnorePointer(
+            child: Opacity(
+              opacity: 0,
+              child: Hero(
+                tag: heroTag,
+                createRectTween: createEndRectTween,
+                child: Obx(
+                  () => NetworkImgLayer(
+                    type: .emote,
+                    quality: 60,
+                    src: videoDetailController.cover.value,
+                    width: width,
+                    height: height,
+                    cacheWidth: true,
+                    getPlaceHolder: () => const SizedBox.shrink(),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
 
         Obx(() {
           if (!videoDetailController.autoPlay) {

@@ -13,6 +13,7 @@ import 'package:PiliPlus/utils/duration_utils.dart';
 import 'package:PiliPlus/utils/global_data.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
 import 'package:PiliPlus/utils/platform_utils.dart';
+import 'package:PiliPlus/utils/utils.dart';
 import 'package:get/get.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -41,6 +42,10 @@ class VideoCardH extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    // 共享元素 tag：卡片 Hero 与详情页封面共用同一个，跳转时原样传下去
+    final heroTag = Utils.makeHeroTag(
+      videoItem.cid ?? videoItem.aid ?? videoItem.bvid,
+    );
     return Material(
       type: .transparency,
       child: Stack(
@@ -49,7 +54,7 @@ class VideoCardH extends StatelessWidget {
           InkWell(
             onLongPress: onLongPress,
             onSecondaryTap: PlatformUtils.isMobile ? null : onLongPress,
-            onTap: onTap ?? () => pushVideoH(videoItem),
+            onTap: onTap ?? () => pushVideoH(videoItem, heroTag: heroTag),
             child: Padding(
               padding: const .symmetric(
                 horizontal: Style.safeSpace,
@@ -70,10 +75,13 @@ class VideoCardH extends StatelessWidget {
                         return Stack(
                           clipBehavior: .none,
                           children: [
-                            NetworkImgLayer(
-                              src: videoItem.cover,
-                              width: maxWidth,
-                              height: maxHeight,
+                            Hero(
+                              tag: heroTag,
+                              child: NetworkImgLayer(
+                                src: videoItem.cover,
+                                width: maxWidth,
+                                height: maxHeight,
+                              ),
                             ),
                             if (videoItem.badge case final badge?)
                               PBadge(
@@ -236,7 +244,10 @@ class VideoCardH extends StatelessWidget {
   }
 }
 
-Future<void> pushVideoH(HorizontalVideoModel videoItem) async {
+Future<void> pushVideoH(
+  HorizontalVideoModel videoItem, {
+  String? heroTag,
+}) async {
   if (videoItem.isPugv ?? false) {
     PageUtils.viewPugv(seasonId: videoItem.seasonId);
     return;
@@ -273,6 +284,7 @@ Future<void> pushVideoH(HorizontalVideoModel videoItem) async {
       cover: videoItem.cover,
       title: videoItem.title,
       dimension: dimension,
+      heroTag: heroTag,
     );
     final String? key = videoItem.bvid ?? videoItem.aid?.toString();
     if (key != null && key.isNotEmpty) {

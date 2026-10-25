@@ -51,6 +51,15 @@ class PlayerFocus extends StatelessWidget {
     return Focus(
       focusNode: focusNode,
       autofocus: true,
+      onFocusChange: (hasFocus) {
+        // 聚焦播放器时把中文输入法切英文，否则 Z/X/C 会被输入法吞掉；
+        // 离开播放器（点弹幕/评论输入框）再还原，输入框照常打中文
+        if (hasFocus) {
+          plPlayerController.keepImeEnglish();
+        } else {
+          plPlayerController.restoreIme();
+        }
+      },
       onKeyEvent: (node, event) {
         final handled = _handleKey(context, event);
         if (handled || _shouldHandle(event.logicalKey)) {
@@ -58,7 +67,11 @@ class PlayerFocus extends StatelessWidget {
         }
         return KeyEventResult.ignored;
       },
-      child: child,
+      child: Listener(
+        // 播放中用户可能又手动切回中文，点一下播放器就再切回英文
+        onPointerDown: (_) => plPlayerController.keepImeEnglish(),
+        child: child,
+      ),
     );
   }
 
@@ -103,6 +116,39 @@ class PlayerFocus extends StatelessWidget {
     }
   }
 
+  /// Z/X/C 单次倍速步进（0.1x），用十分位整数计算避免浮点误差累积
+  void _changeSpeed({required bool isIncrease}) {
+    final tenths = (plPlayerController.playbackSpeed * 10).round();
+    final newTenths = isIncrease
+        ? (tenths + 1).clamp(1, 60)
+        : (tenths - 1).clamp(1, 60);
+    final newSpeed = newTenths / 10.0;
+    unawaited(plPlayerController.setManualPlaybackSpeed(newSpeed));
+    plPlayerController.showKeyboardSpeedToast(newSpeed);
+  }
+
+  /// X/C 长按：按下先步进一次，300ms 后每 100ms 持续步进，松开取消
+  void _updateSpeed(KeyEvent event, {required bool isIncrease}) {
+    if (event is KeyDownEvent) {
+      if (hasPlayer) {
+        _changeSpeed(isIncrease: isIncrease);
+        plPlayerController
+          ..longPressTimer?.cancel()
+          ..longPressTimer = Timer(
+            const Duration(milliseconds: 300),
+            () => plPlayerController
+              ..cancelLongPressTimer()
+              ..longPressTimer = Timer.periodic(
+                const Duration(milliseconds: 100),
+                (_) => _changeSpeed(isIncrease: isIncrease),
+              ),
+          );
+      }
+    } else if (event is KeyUpEvent) {
+      plPlayerController.cancelLongPressTimer();
+    }
+  }
+
   bool _handleKey(BuildContext context, KeyEvent event) {
     final key = event.logicalKey;
 
@@ -128,6 +174,23 @@ class PlayerFocus extends StatelessWidget {
       if (introController?.isTripling ?? false) {
         introController!.onCancelTriple();
       }
+    }
+
+    // Z：在 1.0x 与「上次倍速」之间来回切换（先取消 X/C 长按定时器防止被后续 tick 改回）
+    if (key == LogicalKeyboardKey.keyZ) {
+      if (event is KeyDownEvent && !plPlayerController.isLive && hasPlayer) {
+        plPlayerController.cancelLongPressTimer();
+        unawaited(plPlayerController.toggleNormalSpeed());
+      }
+      return true;
+    }
+
+    // X/C：倍速 -/+ 0.1x，支持长按连续调节
+    if (key == LogicalKeyboardKey.keyX || key == LogicalKeyboardKey.keyC) {
+      if (!plPlayerController.isLive && hasPlayer) {
+        _updateSpeed(event, isIncrease: key == LogicalKeyboardKey.keyC);
+      }
+      return true;
     }
 
     final isArrowUp = key == LogicalKeyboardKey.arrowUp;
