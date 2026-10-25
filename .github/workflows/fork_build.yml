@@ -112,6 +112,26 @@ jobs:
         run: lib/scripts/patch.ps1 android
         continue-on-error: true
 
+      - name: Write signing key
+        shell: bash
+        env:
+          SIGN_KEYSTORE_BASE64: ${{ secrets.SIGN_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          if [ -z "$SIGN_KEYSTORE_BASE64" ]; then
+            echo "::notice::未配置签名 secrets，APK 将使用 debug 签名（仅适合自用安装；发布/覆盖升级请配置签名）"
+            exit 0
+          fi
+          echo "$SIGN_KEYSTORE_BASE64" | base64 --decode > android/app/key.jks
+          cat > android/key.properties <<EOF
+          storeFile=key.jks
+          storePassword=$KEYSTORE_PASSWORD
+          keyAlias=$KEY_ALIAS
+          keyPassword=$KEY_PASSWORD
+          EOF
+
       - name: Set version
         shell: pwsh
         run: lib/scripts/build.ps1 android
