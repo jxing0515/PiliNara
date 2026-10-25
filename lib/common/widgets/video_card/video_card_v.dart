@@ -33,7 +33,7 @@ class VideoCardV extends StatelessWidget {
     this.onRemove,
   });
 
-  Future<void> onPushDetail(String heroTag) async {
+  Future<void> onPushDetail(String heroTag, String heroAnimTag) async {
     switch (videoItem.goto) {
       case 'bangumi':
         PageUtils.viewPgc(epId: videoItem.param!);
@@ -65,6 +65,7 @@ class VideoCardV extends StatelessWidget {
             isVertical: isVertical,
             dimension: dimension,
             heroTag: heroTag,
+            heroAnimTag: heroAnimTag,
           );
         }
         break;
@@ -85,11 +86,14 @@ class VideoCardV extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 共享元素 tag：卡片 Hero 与详情页封面共用同一个（makeHeroTag 带随机后缀，
-    // 同屏出现重复视频时也不会撞 tag），跳转时原样传给详情页
+    // controller 作用域 tag：随机，每次进入详情页独立
     final heroTag = Utils.makeHeroTag(
       videoItem.cid ?? videoItem.aid ?? videoItem.bvid,
     );
+    // Hero 动画 tag：用视频 id 的确定性值，卡片 rebuild（clickedBvids 刷新等）
+    // 也不会改变 tag 导致飞行错位。同视频重复出现时封面相同，视觉无差。
+    final heroAnimTag =
+        'video-hero-${videoItem.cid ?? videoItem.bvid ?? videoItem.aid}';
     void onLongPress() => imageSaveDialog(
       title: videoItem.title,
       cover: videoItem.cover,
@@ -100,7 +104,7 @@ class VideoCardV extends StatelessWidget {
       children: [
         Card(
           child: InkWell(
-            onTap: () => onPushDetail(heroTag),
+            onTap: () => onPushDetail(heroTag, heroAnimTag),
             onLongPress: onLongPress,
             onSecondaryTap: PlatformUtils.isMobile ? null : onLongPress,
             borderRadius: const .all(.circular(12)),
@@ -117,7 +121,8 @@ class VideoCardV extends StatelessWidget {
                         clipBehavior: Clip.none,
                         children: [
                           Hero(
-                            tag: heroTag,
+                            tag: heroAnimTag,
+                            transitionOnUserGestures: true,
                             child: NetworkImgLayer(
                               src: videoItem.cover,
                               width: maxWidth,

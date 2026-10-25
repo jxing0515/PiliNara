@@ -548,6 +548,11 @@ abstract final class PageUtils {
     /// 列表卡片传下来的共享元素 tag（需与卡片 Hero 一致）；
     /// 不传则内部随机生成（无 Hero 源的入口）
     String? heroTag,
+
+    /// Hero 动画专用 tag：与卡片里的 Hero 一致。刻意用「视频 id 确定性值」，
+    /// 卡片 rebuild（如 clickedBvids 刷新）不会改变 tag 导致飞行错位。
+    /// 同屏出现同一个视频时 tag 会重复，但封面相同、视觉无差（debug 下有 assert）
+    String? heroAnimTag,
   }) {
     final arguments = {
       'aid': aid ?? IdUtils.bv2av(bvid!),
@@ -562,6 +567,7 @@ abstract final class PageUtils {
       'videoType': videoType,
       'isVertical': dimension?.isVertical ?? isVertical,
       'heroTag': heroTag ?? Utils.makeHeroTag(cid),
+      'heroAnimTag': ?heroAnimTag,
       rootRpIdKey: ?rootRpId,
       secondRpIdKey: ?secondRpId,
       ...?extraArguments,

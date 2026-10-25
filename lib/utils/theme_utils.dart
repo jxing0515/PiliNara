@@ -179,11 +179,10 @@ abstract final class ThemeUtils {
           shadowColor: WidgetStatePropertyAll(Colors.transparent),
         ),
       ),
-      pageTransitionsTheme: PageTransitionsTheme(
+      pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
-          TargetPlatform.android: Pref.enablePredictiveBack
-              ? const PredictiveBackPageTransitionsBuilder()
-              : const ZoomPageTransitionsBuilder(),
+          TargetPlatform.android: _VideoHeroSafePageTransitionsBuilder(),
+          TargetPlatform.windows: _VideoHeroSafePageTransitionsBuilder(),
         },
       ),
     );
@@ -241,6 +240,44 @@ abstract final class ThemeUtils {
           0.4,
         ),
       ),
+    );
+  }
+}
+
+/// 视频详情页的转场改成无位移淡入。
+///
+/// Hero 的飞行终点是在转场开始时一次性捕获的（`_HeroFlightManifest` 的
+/// `toHeroLocation` 是 late final），若页面本身带平移/缩放（预测性返回的
+/// FadeForwards 会从右侧整屏滑入），封面就会飞向屏幕外的错误位置，看起来乱飘。
+/// 详情页改成纯淡入（位置固定），Hero 落点才准；其他页面保持原有转场。
+class _VideoHeroSafePageTransitionsBuilder extends PageTransitionsBuilder {
+  const _VideoHeroSafePageTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    if (route.settings.name == '/videoV') {
+      return FadeTransition(
+        opacity: animation.drive(CurveTween(curve: Curves.easeOut)),
+        child: child,
+      );
+    }
+    final pageTransitionsBuilder =
+        Theme.of(context).platform == TargetPlatform.android &&
+            Pref.enablePredictiveBack
+        ? const PredictiveBackPageTransitionsBuilder()
+        : const ZoomPageTransitionsBuilder();
+    return pageTransitionsBuilder.buildTransitions(
+      route,
+      context,
+      animation,
+      secondaryAnimation,
+      child,
     );
   }
 }

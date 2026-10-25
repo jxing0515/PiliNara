@@ -42,10 +42,14 @@ class VideoCardH extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    // 共享元素 tag：卡片 Hero 与详情页封面共用同一个，跳转时原样传下去
+    // controller 作用域 tag（随机，每次进入详情页独立）
     final heroTag = Utils.makeHeroTag(
       videoItem.cid ?? videoItem.aid ?? videoItem.bvid,
     );
+    // Hero 动画 tag：视频 id 的确定性值，卡片 rebuild（clickedBvids 刷新等）
+    // 不会改变 tag 导致飞行错位
+    final heroAnimTag =
+        'video-hero-${videoItem.cid ?? videoItem.bvid ?? videoItem.aid}';
     return Material(
       type: .transparency,
       child: Stack(
@@ -54,7 +58,12 @@ class VideoCardH extends StatelessWidget {
           InkWell(
             onLongPress: onLongPress,
             onSecondaryTap: PlatformUtils.isMobile ? null : onLongPress,
-            onTap: onTap ?? () => pushVideoH(videoItem, heroTag: heroTag),
+            onTap: onTap ??
+                () => pushVideoH(
+                  videoItem,
+                  heroTag: heroTag,
+                  heroAnimTag: heroAnimTag,
+                ),
             child: Padding(
               padding: const .symmetric(
                 horizontal: Style.safeSpace,
@@ -76,7 +85,8 @@ class VideoCardH extends StatelessWidget {
                           clipBehavior: .none,
                           children: [
                             Hero(
-                              tag: heroTag,
+                              tag: heroAnimTag,
+                              transitionOnUserGestures: true,
                               child: NetworkImgLayer(
                                 src: videoItem.cover,
                                 width: maxWidth,
@@ -247,6 +257,7 @@ class VideoCardH extends StatelessWidget {
 Future<void> pushVideoH(
   HorizontalVideoModel videoItem, {
   String? heroTag,
+  String? heroAnimTag,
 }) async {
   if (videoItem.isPugv ?? false) {
     PageUtils.viewPugv(seasonId: videoItem.seasonId);
@@ -285,6 +296,7 @@ Future<void> pushVideoH(
       title: videoItem.title,
       dimension: dimension,
       heroTag: heroTag,
+      heroAnimTag: heroAnimTag,
     );
     final String? key = videoItem.bvid ?? videoItem.aid?.toString();
     if (key != null && key.isNotEmpty) {

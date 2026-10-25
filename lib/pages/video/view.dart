@@ -7,7 +7,6 @@ import 'package:PiliPlus/common/widgets/custom_icon.dart';
 import 'package:PiliPlus/common/widgets/flutter/pop_scope.dart';
 import 'package:PiliPlus/common/widgets/flutter/popup_menu.dart';
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
-import 'package:PiliPlus/common/widgets/image_viewer/hero.dart';
 import 'package:PiliPlus/common/widgets/keep_alive_wrapper.dart';
 import 'package:PiliPlus/common/widgets/pip_mini_video_content.dart';
 import 'package:PiliPlus/common/widgets/route_aware_mixin.dart';
@@ -103,6 +102,9 @@ class VideoDetailPageV extends StatefulWidget {
 class _VideoDetailPageVState extends State<VideoDetailPageV>
     with RouteAware, RouteAwareMixin, WidgetsBindingObserver {
   late final String heroTag;
+
+  /// Hero 动画 tag：与列表卡片的确定性 tag 一致；独立于 heroTag（controller 作用域）
+  late final String _heroAnimTag;
 
   late final VideoDetailController videoDetailController;
   late final VideoReplyController _videoReplyController;
@@ -304,6 +306,10 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
     // heroTag 是这组 GetX controller 的作用域标识。复用已有 controller
     // 时必须沿用其原 tag；这里只在页面初始化时决定一次，之后保持不变。
     heroTag = restoredController?.heroTag ?? Get.arguments['heroTag'];
+    final args = Get.arguments is Map ? Get.arguments as Map : const {};
+    _heroAnimTag =
+        args['heroAnimTag'] as String? ??
+        'video-hero-${args['cid'] ?? args['bvid'] ?? args['aid']}';
     if (restoredController != null && Get.arguments is Map) {
       // 附属 controller 的 onInit 仍从 Get.arguments 读取 heroTag，需在创建
       // 它们之前同步为同一作用域，避免主/附属 controller 的 tag 分裂。
@@ -2275,18 +2281,28 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
 
         plPlayer(width: width, height: height),
 
-        // 共享元素目标：始终构建、透明且不参与点击，只把封面图交给 Hero 飞行层。
-        // 注意别把播放器放进 Hero —— 旧实现因此让 videoPlayer 渲染两次
-        // （f7e9fbaea），列表侧删 Hero 也是为了避免这类页面重建问题（#92）。
+        // 共享元素目标：转场期间显示封面，转场结束且已自动播放时隐藏。
+        // 只把封面图交给 Hero（不包 plPlayer），避免 f7e9fbaea 的播放器双渲染；
+        // transitionOnUserGestures 让预测性返回手势里也能飞（默认手势过渡不飞）。
         Positioned.fill(
           child: IgnorePointer(
-            child: Opacity(
-              opacity: 0,
-              child: Hero(
-                tag: heroTag,
-                createRectTween: createEndRectTween,
-                child: Obx(
-                  () => NetworkImgLayer(
+            child: Obx(
+              () => AnimatedBuilder(
+                animation: ModalRoute.of(context)!.animation!,
+                builder: (context, child) {
+                  final routeAnimation = ModalRoute.of(context)!.animation!;
+                  final hideCover =
+                      videoDetailController.autoPlay &&
+                      routeAnimation.status == AnimationStatus.completed;
+                  return Opacity(
+                    opacity: hideCover ? 0.0 : 1.0,
+                    child: child,
+                  );
+                },
+                child: Hero(
+                  tag: _heroAnimTag,
+                  transitionOnUserGestures: true,
+                  child: NetworkImgLayer(
                     type: .emote,
                     quality: 60,
                     src: videoDetailController.cover.value,
