@@ -100,6 +100,7 @@ class PLVideoPlayer extends StatefulWidget {
     required this.headerControl,
     this.bottomControl,
     this.danmuWidget,
+    this.loadingCover,
     this.showEpisodes,
     this.showViewPoints,
     this.isPipMode = false,
@@ -117,6 +118,10 @@ class PLVideoPlayer extends StatefulWidget {
   final Widget headerControl;
   final Widget? bottomControl;
   final Widget? danmuWidget;
+
+  /// 首帧渲染前的封面占位：放在播放器内部、头部/底部控制条下面，
+  /// 这样返回、返回主页等按钮不会被封面盖住
+  final Widget? loadingCover;
   final void Function([
     int?,
     UgcSeason?,
@@ -1695,6 +1700,11 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
       key: _playerKey,
       children: <Widget>[
         _videoWidget,
+
+        if (widget.loadingCover case final cover?)
+          Positioned.fill(
+            child: IgnorePointer(child: cover),
+          ),
 
         if (widget.danmuWidget case final danmaku?)
           Positioned.fill(top: _kDanmakuTopInset, child: danmaku),

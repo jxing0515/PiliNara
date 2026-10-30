@@ -2009,6 +2009,9 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
                       ),
                 showEpisodes: showEpisodes,
                 showViewPoints: showViewPoints,
+                loadingCover: isPipMode
+                    ? null
+                    : _buildLoadingCover(width: width, height: height),
               ),
       ),
     );
@@ -2019,9 +2022,41 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
         : player;
   }
 
+  /// 首帧出来前的封面占位：放进播放器内部、控制条下方，避免盖住返回/主页按钮
+  Widget _buildLoadingCover({required double width, required double height}) {
+    return Obx(() {
+      if (videoDetailController.plPlayerController.firstFrameRendered.value) {
+        return const SizedBox.shrink();
+      }
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          NetworkImgLayer(
+            type: .emote,
+            quality: 60,
+            src: videoDetailController.cover.value,
+            width: width,
+            height: height,
+            cacheWidth: true,
+            getPlaceHolder: () => const SizedBox.shrink(),
+          ),
+          const Center(
+            child: SizedBox(
+              width: 34,
+              height: 34,
+              child: CircularProgressIndicator(
+                strokeWidth: 3,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      );
+    });
+  }
+
   late ThemeData theme;
-  ColorScheme get colorScheme => theme.colorScheme;
-  late bool isPortrait;
+  ColorScheme get colorScheme => theme.colorScheme;  late bool isPortrait;
   late double maxWidth;
   late double maxHeight;
   bool isWindowMode = false;
@@ -2288,10 +2323,16 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
           child: IgnorePointer(
             child: Obx(() {
               final autoPlay = videoDetailController.autoPlay;
-              final firstFrameReady = videoDetailController
-                  .plPlayerController
-                  .firstFrameRendered
-                  .value;
+              // 播放器一旦挂载，封面占位就交给播放器内部的 _buildLoadingCover
+              // （位于控制条下方），外层 Hero 封面收起，不再盖住返回/主页按钮
+              final playerBuilt =
+                  videoDetailController.videoState.value &&
+                  autoPlay &&
+                  videoDetailController
+                          .plPlayerController
+                          .videoController !=
+                      null &&
+                  _isPageOwner;
               final routeAnimation = ModalRoute.of(context)!.animation!;
               return Stack(
                 fit: StackFit.expand,
@@ -2300,11 +2341,10 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
                     animation: routeAnimation,
                     builder: (context, child) {
                       final hideCover =
-                          autoPlay &&
-                          firstFrameReady &&
+                          playerBuilt &&
                           routeAnimation.status ==
                               AnimationStatus.completed;
-                      // 首帧渲染前一直盖着封面，避免露出播放器的黑屏加载态
+                      // 播放器挂载前一直盖着封面，避免露出黑屏
                       return Opacity(
                         opacity: hideCover ? 0.0 : 1.0,
                         child: child,
@@ -2336,8 +2376,8 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
                       ),
                     ),
                   ),
-                  // 开播后、首帧出来前：封面上覆盖加载图标
-                  if (autoPlay && !firstFrameReady)
+                  // 播放器未挂载时：封面上覆盖加载图标
+                  if (autoPlay && !playerBuilt)
                     const Center(
                       child: SizedBox(
                         width: 34,
