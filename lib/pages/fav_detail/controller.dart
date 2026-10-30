@@ -239,6 +239,7 @@ class FavDetailController
       cid: item.ugc!.firstCid!,
       cover: item.cover,
       title: item.title,
+      heroAnimTag: item.bvid != null ? 'video-hero-${item.bvid}' : null,
       extraArguments: isPlayAll.value
           ? {
               'sourceType': SourceType.fav,

@@ -5,6 +5,7 @@ import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/common/widgets/svg/play_icon.dart';
 import 'package:PiliPlus/models/common/badge_type.dart';
 import 'package:PiliPlus/models/dynamics/result.dart';
+import 'package:PiliPlus/utils/id_utils.dart';
 import 'package:PiliPlus/utils/num_utils.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -33,6 +34,19 @@ Widget videoSeasonWidget(
     return const SizedBox.shrink();
   }
 
+  // 动态里的视频卡 → 视频详情：用 bvid 的确定性 tag 做共享元素过渡
+  final String? heroAnimTag = switch (item.type) {
+    'DYNAMIC_TYPE_AV' =>
+      (video.bvid?.trim().isNotEmpty ?? false)
+          ? 'video-hero-${video.bvid}'
+          : null,
+    'DYNAMIC_TYPE_UGC_SEASON' =>
+      video.aid != null
+          ? 'video-hero-${IdUtils.av2bv(video.aid!)}'
+          : null,
+    _ => null,
+  };
+
   EdgeInsets padding;
   if (floor == 1) {
     padding = const EdgeInsets.symmetric(horizontal: 12);
@@ -50,12 +64,21 @@ Widget videoSeasonWidget(
             clipBehavior: Clip.none,
             children: [
               LayoutBuilder(
-                builder: (context, constraints) => NetworkImgLayer(
-                  width: constraints.maxWidth,
-                  height: constraints.maxWidth / Style.aspectRatio,
-                  src: cover,
-                  quality: 40,
-                ),
+                builder: (context, constraints) {
+                  final coverWidget = NetworkImgLayer(
+                    width: constraints.maxWidth,
+                    height: constraints.maxWidth / Style.aspectRatio,
+                    src: cover,
+                    quality: 40,
+                  );
+                  return heroAnimTag == null
+                      ? coverWidget
+                      : Hero(
+                          tag: heroAnimTag,
+                          transitionOnUserGestures: true,
+                          child: coverWidget,
+                        );
+                },
               ),
               if (video.badge?.text case final badge?)
                 PBadge(

@@ -63,6 +63,7 @@ class FavSearchController
     cid: item.ugc!.firstCid!,
     cover: item.cover,
     title: item.title,
+    heroAnimTag: item.bvid != null ? 'video-hero-${item.bvid}' : null,
     extraArguments: {
       'sourceType': SourceType.fav,
       'mediaId': mediaId,

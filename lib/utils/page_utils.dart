@@ -308,6 +308,7 @@ abstract final class PageUtils {
               cover: cover,
               dimension: res!.dimension,
               title: archive.title,
+              heroAnimTag: 'video-hero-$bvid',
             );
           }
         } catch (err) {
@@ -370,6 +371,7 @@ abstract final class PageUtils {
             cover: cover,
             dimension: res!.dimension,
             title: ugcSeason.title,
+            heroAnimTag: 'video-hero-$bvid',
           );
         }
         break;

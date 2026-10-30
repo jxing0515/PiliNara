@@ -68,12 +68,16 @@ class HistoryItem extends StatelessWidget {
                         return Stack(
                           clipBehavior: Clip.none,
                           children: [
-                            NetworkImgLayer(
-                              src: item.cover?.isNotEmpty == true
-                                  ? item.cover
-                                  : item.covers?.firstOrNull ?? '',
-                              width: maxWidth,
-                              height: maxHeight,
+                            Hero(
+                              tag: 'video-hero-${item.history.bvid ?? item.history.oid}',
+                              transitionOnUserGestures: true,
+                              child: NetworkImgLayer(
+                                src: item.cover?.isNotEmpty == true
+                                    ? item.cover
+                                    : item.covers?.firstOrNull ?? '',
+                                width: maxWidth,
+                                height: maxHeight,
+                              ),
                             ),
                             ?item.label,
                             if (hasDuration)
@@ -270,6 +274,7 @@ Future<void> onPushHistory(HistoryItemModel item) async {
         title: item.title,
         dimension: dimension,
         progress: item.playbackProgress,
+        heroAnimTag: 'video-hero-${item.history.bvid ?? item.history.oid}',
       );
     }
   }

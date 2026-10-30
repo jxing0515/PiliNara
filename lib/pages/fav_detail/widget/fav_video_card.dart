@@ -105,14 +105,22 @@ class FavVideoCardH extends StatelessWidget {
                   builder: (context, boxConstraints) {
                     double maxWidth = boxConstraints.maxWidth;
                     double maxHeight = boxConstraints.maxHeight;
+                    Widget cover = NetworkImgLayer(
+                      src: item.cover,
+                      width: maxWidth,
+                      height: maxHeight,
+                    );
+                    if (item.bvid != null) {
+                      cover = Hero(
+                        tag: 'video-hero-${item.bvid}',
+                        transitionOnUserGestures: true,
+                        child: cover,
+                      );
+                    }
                     return Stack(
                       clipBehavior: Clip.none,
                       children: [
-                        NetworkImgLayer(
-                          src: item.cover,
-                          width: maxWidth,
-                          height: maxHeight,
-                        ),
+                        cover,
                         PBadge(
                           text: DurationUtils.formatDuration(item.duration),
                           right: 6.0,
