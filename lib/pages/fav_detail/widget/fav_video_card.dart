@@ -81,9 +81,7 @@ class FavVideoCardH extends StatelessWidget {
             bvid: item.bvid,
           );
 
-    final heroAnimTag = item.bvid == null ? null : 'video-hero-${item.bvid}';
-
-    final card = Material(
+    return Material(
       type: MaterialType.transparency,
       child: InkWell(
         onTap: isSort
@@ -112,6 +110,13 @@ class FavVideoCardH extends StatelessWidget {
                       width: maxWidth,
                       height: maxHeight,
                     );
+                    if (item.bvid != null) {
+                      cover = Hero(
+                        tag: 'video-hero-${item.bvid}',
+                        transitionOnUserGestures: true,
+                        child: cover,
+                      );
+                    }
                     return Stack(
                       clipBehavior: Clip.none,
                       children: [
@@ -155,12 +160,6 @@ class FavVideoCardH extends StatelessWidget {
           ),
         ),
       ),
-    );
-    if (heroAnimTag == null) return card;
-    return Hero(
-      tag: heroAnimTag,
-      transitionOnUserGestures: true,
-      child: card,
     );
   }
 
