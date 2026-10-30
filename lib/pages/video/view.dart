@@ -2302,6 +2302,18 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
                 child: Hero(
                   tag: _heroAnimTag,
                   transitionOnUserGestures: true,
+                  // 列表卡片和详情页的 memCacheWidth 不同，首次进入时详情页封面
+                  // 还在解码；默认 shuttle 用目标端会飞出一个空白图（看起来像
+                  // 没有缩放）。统一用列表侧已经解码好的封面。
+                  flightShuttleBuilder: (
+                    flightContext,
+                    animation,
+                    direction,
+                    fromContext,
+                    toContext,
+                  ) => direction == HeroFlightDirection.push
+                      ? (fromContext.widget as Hero).child
+                      : (toContext.widget as Hero).child,
                   child: NetworkImgLayer(
                     type: .emote,
                     quality: 60,
