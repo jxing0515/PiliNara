@@ -2286,46 +2286,71 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
         // transitionOnUserGestures 让预测性返回手势里也能飞（默认手势过渡不飞）。
         Positioned.fill(
           child: IgnorePointer(
-            child: Obx(
-              () => AnimatedBuilder(
-                animation: ModalRoute.of(context)!.animation!,
-                builder: (context, child) {
-                  final routeAnimation = ModalRoute.of(context)!.animation!;
-                  final hideCover =
-                      videoDetailController.autoPlay &&
-                      routeAnimation.status == AnimationStatus.completed;
-                  return Opacity(
-                    opacity: hideCover ? 0.0 : 1.0,
-                    child: child,
-                  );
-                },
-                child: Hero(
-                  tag: _heroAnimTag,
-                  transitionOnUserGestures: true,
-                  // 列表卡片和详情页的 memCacheWidth 不同，首次进入时详情页封面
-                  // 还在解码；默认 shuttle 用目标端会飞出一个空白图（看起来像
-                  // 没有缩放）。统一用列表侧已经解码好的封面。
-                  flightShuttleBuilder: (
-                    flightContext,
-                    animation,
-                    direction,
-                    fromContext,
-                    toContext,
-                  ) => direction == HeroFlightDirection.push
-                      ? (fromContext.widget as Hero).child
-                      : (toContext.widget as Hero).child,
-                  child: NetworkImgLayer(
-                    type: .emote,
-                    quality: 60,
-                    src: videoDetailController.cover.value,
-                    width: width,
-                    height: height,
-                    cacheWidth: true,
-                    getPlaceHolder: () => const SizedBox.shrink(),
+            child: Obx(() {
+              final autoPlay = videoDetailController.autoPlay;
+              final firstFrameReady = videoDetailController
+                  .plPlayerController
+                  .firstFrameRendered
+                  .value;
+              final routeAnimation = ModalRoute.of(context)!.animation!;
+              return Stack(
+                fit: StackFit.expand,
+                children: [
+                  AnimatedBuilder(
+                    animation: routeAnimation,
+                    builder: (context, child) {
+                      final hideCover =
+                          autoPlay &&
+                          firstFrameReady &&
+                          routeAnimation.status ==
+                              AnimationStatus.completed;
+                      // 首帧渲染前一直盖着封面，避免露出播放器的黑屏加载态
+                      return Opacity(
+                        opacity: hideCover ? 0.0 : 1.0,
+                        child: child,
+                      );
+                    },
+                    child: Hero(
+                      tag: _heroAnimTag,
+                      transitionOnUserGestures: true,
+                      // 列表卡片和详情页的 memCacheWidth 不同，首次进入时详情页
+                      // 封面还在解码；默认 shuttle 用目标端会飞出一张空白图。
+                      // 统一用列表侧已经解码好的封面。
+                      flightShuttleBuilder: (
+                        flightContext,
+                        animation,
+                        direction,
+                        fromContext,
+                        toContext,
+                      ) => direction == HeroFlightDirection.push
+                          ? (fromContext.widget as Hero).child
+                          : (toContext.widget as Hero).child,
+                      child: NetworkImgLayer(
+                        type: .emote,
+                        quality: 60,
+                        src: videoDetailController.cover.value,
+                        width: width,
+                        height: height,
+                        cacheWidth: true,
+                        getPlaceHolder: () => const SizedBox.shrink(),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            ),
+                  // 开播后、首帧出来前：封面上覆盖加载图标
+                  if (autoPlay && !firstFrameReady)
+                    const Center(
+                      child: SizedBox(
+                        width: 34,
+                        height: 34,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 3,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            }),
           ),
         ),
 

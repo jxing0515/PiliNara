@@ -275,6 +275,10 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
   /// 听视频
   late final RxBool onlyPlayAudio = false.obs;
 
+  /// 播放器首帧是否已渲染：详情页封面据此决定何时收起，避免首帧前露出黑屏
+  final RxBool firstFrameRendered = false.obs;
+  int _firstFrameGeneration = 0;
+
   /// 后台自动只听音频状态机
   AutoAudioOnlyState _autoAudioState = AutoAudioOnlyState.idle;
   Timer? _autoAudioOnlyTimer;
@@ -1300,6 +1304,8 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
     Duration? seekTo,
     Volume? volume,
   ) async {
+    // 新视频先盖住封面，等首帧真正渲染后再收起
+    firstFrameRendered.value = false;
     isBuffering.value = false;
     _heartDuration = 0;
     position.value = seekTo?.inSeconds ?? 0;
@@ -1360,6 +1366,32 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
       play: false,
     );
     applyVideoPictureParameters(player);
+    _watchFirstFrameRendered();
+  }
+
+  /// 等待首帧渲染完成（详情页封面据此收起，避免首帧前露出黑屏）
+  void _watchFirstFrameRendered() {
+    final generation = ++_firstFrameGeneration;
+    final controller = _videoController;
+    if (controller == null || onlyPlayAudio.value) {
+      // 纯音频没有视频帧可等，直接视为就绪
+      firstFrameRendered.value = true;
+      return;
+    }
+    unawaited(
+      controller.waitUntilFirstFrameRendered
+          .then((_) {
+            if (generation == _firstFrameGeneration) {
+              firstFrameRendered.value = true;
+            }
+          })
+          .catchError((_) {
+            // 等待失败也收起封面，避免一直挡着；真出错时播放器自己会提示
+            if (generation == _firstFrameGeneration) {
+              firstFrameRendered.value = true;
+            }
+          }),
+    );
   }
 
   Future<void>? refreshPlayer() {
@@ -2682,6 +2714,7 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
   }
 
   void dispose() {
+    _firstFrameGeneration++;
     _cancelAutoAudioOnlyTimer();
     _interruptAutoAudioRestore();
     _autoAudioState = AutoAudioOnlyState.idle;
