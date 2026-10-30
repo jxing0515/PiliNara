@@ -41,9 +41,7 @@ Widget videoSeasonWidget(
           ? 'video-hero-${video.bvid}'
           : null,
     'DYNAMIC_TYPE_UGC_SEASON' =>
-      video.aid != null
-          ? 'video-hero-${IdUtils.av2bv(video.aid!)}'
-          : null,
+      video.aid != null ? 'video-hero-${IdUtils.av2bv(video.aid!)}' : null,
     _ => null,
   };
 
@@ -53,7 +51,7 @@ Widget videoSeasonWidget(
   } else {
     padding = EdgeInsets.zero;
   }
-  return Padding(
+  final content = Padding(
     padding: padding,
     child: Column(
       spacing: 6,
@@ -64,21 +62,12 @@ Widget videoSeasonWidget(
             clipBehavior: Clip.none,
             children: [
               LayoutBuilder(
-                builder: (context, constraints) {
-                  final coverWidget = NetworkImgLayer(
-                    width: constraints.maxWidth,
-                    height: constraints.maxWidth / Style.aspectRatio,
-                    src: cover,
-                    quality: 40,
-                  );
-                  return heroAnimTag == null
-                      ? coverWidget
-                      : Hero(
-                          tag: heroAnimTag,
-                          transitionOnUserGestures: true,
-                          child: coverWidget,
-                        );
-                },
+                builder: (context, constraints) => NetworkImgLayer(
+                  width: constraints.maxWidth,
+                  height: constraints.maxWidth / Style.aspectRatio,
+                  src: cover,
+                  quality: 40,
+                ),
               ),
               if (video.badge?.text case final badge?)
                 PBadge(
@@ -152,5 +141,11 @@ Widget videoSeasonWidget(
           ),
       ],
     ),
+  );
+  if (heroAnimTag == null) return content;
+  return Hero(
+    tag: heroAnimTag,
+    transitionOnUserGestures: true,
+    child: content,
   );
 }

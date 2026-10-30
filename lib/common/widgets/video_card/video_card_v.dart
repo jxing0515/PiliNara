@@ -102,62 +102,64 @@ class VideoCardV extends StatelessWidget {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        Card(
-          child: InkWell(
-            onTap: () => onPushDetail(heroTag, heroAnimTag),
-            onLongPress: onLongPress,
-            onSecondaryTap: PlatformUtils.isMobile ? null : onLongPress,
-            borderRadius: const .all(.circular(12)),
-            child: Column(
-              crossAxisAlignment: .start,
-              children: [
-                AspectRatio(
-                  aspectRatio: Style.aspectRatio,
-                  child: LayoutBuilder(
-                    builder: (context, boxConstraints) {
-                      double maxWidth = boxConstraints.maxWidth;
-                      double maxHeight = boxConstraints.maxHeight;
-                      return Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          Hero(
-                            tag: heroAnimTag,
-                            transitionOnUserGestures: true,
-                            child: NetworkImgLayer(
+        Hero(
+          tag: heroAnimTag,
+          transitionOnUserGestures: true,
+          child: Card(
+            child: InkWell(
+              onTap: () => onPushDetail(heroTag, heroAnimTag),
+              onLongPress: onLongPress,
+              onSecondaryTap: PlatformUtils.isMobile ? null : onLongPress,
+              borderRadius: const .all(.circular(12)),
+              child: Column(
+                crossAxisAlignment: .start,
+                children: [
+                  AspectRatio(
+                    aspectRatio: Style.aspectRatio,
+                    child: LayoutBuilder(
+                      builder: (context, boxConstraints) {
+                        double maxWidth = boxConstraints.maxWidth;
+                        double maxHeight = boxConstraints.maxHeight;
+                        return Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            NetworkImgLayer(
                               src: videoItem.cover,
                               width: maxWidth,
                               height: maxHeight,
                               borderRadius: const .vertical(top: .circular(12)),
                             ),
-                          ),
-                          if (videoItem.duration > 0)
-                            PBadge(
-                              bottom: 6,
-                              right: 7,
-                              size: .small,
-                              type: .gray,
-                              text: DurationUtils.formatDuration(
-                                videoItem.duration,
+                            if (videoItem.duration > 0)
+                              PBadge(
+                                bottom: 6,
+                                right: 7,
+                                size: .small,
+                                type: .gray,
+                                text: DurationUtils.formatDuration(
+                                  videoItem.duration,
+                                ),
                               ),
-                            ),
-                          if (videoItem case RcmdVideoItemAppModel(
-                            :final canPlay,
-                          ) when canPlay != 1)
-                            const PBadge(
-                              text: '充电专属',
-                              top: 6,
-                              right: 6,
-                              size: .small,
-                              type: .error,
-                              fontSize: 10,
-                            ),
-                        ],
-                      );
-                    },
+                            if (videoItem
+                                case RcmdVideoItemAppModel(
+                                  :final canPlay,
+                                )
+                                when canPlay != 1)
+                              const PBadge(
+                                text: '充电专属',
+                                top: 6,
+                                right: 6,
+                                size: .small,
+                                type: .error,
+                                fontSize: 10,
+                              ),
+                          ],
+                        );
+                      },
+                    ),
                   ),
-                ),
-                content(context),
-              ],
+                  content(context),
+                ],
+              ),
             ),
           ),
         ),
@@ -236,10 +238,11 @@ class VideoCardV extends StatelessWidget {
                     ),
                     maxLines: 1,
                     overflow: .clip,
-                    semanticsLabel: 'UP：${remarkedName(
-                      videoItem.owner.mid,
-                      videoItem.owner.name.toString(),
-                    )}',
+                    semanticsLabel:
+                        'UP：${remarkedName(
+                          videoItem.owner.mid,
+                          videoItem.owner.name.toString(),
+                        )}',
                     style: TextStyle(
                       height: 1.5,
                       fontSize: theme.textTheme.labelMedium!.fontSize,

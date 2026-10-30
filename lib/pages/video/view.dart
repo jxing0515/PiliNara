@@ -2353,18 +2353,54 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
                     child: Hero(
                       tag: _heroAnimTag,
                       transitionOnUserGestures: true,
-                      // 列表卡片和详情页的 memCacheWidth 不同，首次进入时详情页
-                      // 封面还在解码；默认 shuttle 用目标端会飞出一张空白图。
-                      // 统一用列表侧已经解码好的封面。
+                      // 用卡片一侧的整张卡片做飞行体（官方是整卡共享元素，
+                      // 不是只飞封面）。卡片按原始尺寸布局后用 FittedBox 缩放，
+                      // 避免 LayoutBuilder 在 overlay 里拿到无限约束。
                       flightShuttleBuilder: (
                         flightContext,
                         animation,
                         direction,
                         fromContext,
                         toContext,
-                      ) => direction == HeroFlightDirection.push
-                          ? (fromContext.widget as Hero).child
-                          : (toContext.widget as Hero).child,
+                      ) {
+                        final heroContext =
+                            direction == HeroFlightDirection.push
+                            ? fromContext
+                            : toContext;
+                        final hero = heroContext.widget as Hero;
+                        final renderBox = heroContext.findRenderObject();
+                        final size = renderBox is RenderBox && renderBox.hasSize
+                            ? renderBox.size
+                            : Size.zero;
+                        Widget shuttle = size.isEmpty
+                            ? hero.child
+                            : FittedBox(
+                                fit: BoxFit.cover,
+                                alignment: Alignment.topCenter,
+                                child: SizedBox(
+                                  width: size.width,
+                                  height: size.height,
+                                  child: hero.child,
+                                ),
+                              );
+                        if (direction == HeroFlightDirection.push) {
+                          // 落地前淡出，避免卡片的标题/统计在落点突然消失
+                          shuttle = FadeTransition(
+                            opacity: TweenSequence<double>([
+                              TweenSequenceItem(
+                                tween: ConstantTween(1.0),
+                                weight: 82,
+                              ),
+                              TweenSequenceItem(
+                                tween: Tween(begin: 1.0, end: 0.0),
+                                weight: 18,
+                              ),
+                            ]).animate(animation),
+                            child: shuttle,
+                          );
+                        }
+                        return shuttle;
+                      },
                       child: NetworkImgLayer(
                         type: .emote,
                         quality: 60,
