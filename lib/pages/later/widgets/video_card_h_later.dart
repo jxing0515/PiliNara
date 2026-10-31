@@ -29,6 +29,7 @@ class VideoCardHLater extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final heroAnimTag = 'video-hero-${videoItem.bvid ?? videoItem.aid}';
     final enableMultiSelect = ctr.enableMultiSelect.value;
 
     final onLongPress = enableMultiSelect
@@ -44,7 +45,11 @@ class VideoCardHLater extends StatelessWidget {
         onSecondaryTap: PlatformUtils.isMobile ? null : onLongPress,
         onTap: enableMultiSelect
             ? () => ctr.onSelect(videoItem)
-            : () => onPushLater(videoItem, onViewLater: onViewLater),
+            : () => onPushLater(
+                videoItem,
+                onViewLater: onViewLater,
+                heroAnimTag: heroAnimTag,
+              ),
         child: Padding(
           padding: const EdgeInsets.symmetric(
             horizontal: Style.safeSpace,
@@ -62,11 +67,15 @@ class VideoCardHLater extends StatelessWidget {
                     return Stack(
                       clipBehavior: Clip.none,
                       children: [
-                        NetworkImgLayer(
-                          src: videoItem.pic,
-                          width: maxWidth,
-                          height: maxHeight,
-                          cacheWidth: videoItem.dimension?.cacheWidth,
+                        Hero(
+                          tag: heroAnimTag,
+                          transitionOnUserGestures: true,
+                          child: NetworkImgLayer(
+                            src: videoItem.pic,
+                            width: maxWidth,
+                            height: maxHeight,
+                            cacheWidth: videoItem.dimension?.cacheWidth,
+                          ),
                         ),
                         ?videoItem.label,
                         ...videoItem.progressIndicator(theme.colorScheme),
@@ -183,6 +192,7 @@ class VideoCardHLater extends StatelessWidget {
 Future<void> onPushLater(
   LaterItemModel item, {
   ValueChanged<int>? onViewLater,
+  String? heroAnimTag,
 }) async {
   if (item.isPugv ?? false) {
     PageUtils.viewPugv(seasonId: item.aid);
@@ -214,6 +224,7 @@ Future<void> onPushLater(
           title: item.title,
           dimension: item.dimension,
           extraArguments: const {'viewLater': true},
+          heroAnimTag: heroAnimTag,
         );
       }
     }

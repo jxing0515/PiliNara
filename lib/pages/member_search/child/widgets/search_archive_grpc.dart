@@ -34,6 +34,7 @@ class SearchArchiveGrpc extends StatelessWidget {
   Widget build(BuildContext context) {
     final arc = item.archive;
     final bvid = IdUtils.av2bv(arc.aid.toInt());
+    final heroAnimTag = 'video-hero-$bvid';
     final regTitle = Em.regTitle(arc.title);
     final titleStr = regTitle.map((e) => e.text).join();
     void onLongPress() => imageSaveDialog(
@@ -64,6 +65,7 @@ class SearchArchiveGrpc extends StatelessWidget {
                 cover: arc.pic,
                 title: titleStr,
                 isVertical: arc.dimension.isVertical,
+                heroAnimTag: heroAnimTag,
               );
             },
             child: Padding(
@@ -83,10 +85,14 @@ class SearchArchiveGrpc extends StatelessWidget {
                         return Stack(
                           clipBehavior: Clip.none,
                           children: [
-                            NetworkImgLayer(
-                              src: arc.pic,
-                              width: maxWidth,
-                              height: maxHeight,
+                            Hero(
+                              tag: heroAnimTag,
+                              transitionOnUserGestures: true,
+                              child: NetworkImgLayer(
+                                src: arc.pic,
+                                width: maxWidth,
+                                height: maxHeight,
+                              ),
                             ),
                             if (item.isPugv)
                               const PBadge(

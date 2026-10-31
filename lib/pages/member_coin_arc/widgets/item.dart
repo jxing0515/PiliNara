@@ -24,6 +24,7 @@ class MemberCoinLikeItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final heroAnimTag = 'video-hero-${item.param}';
     void onLongPress() => imageSaveDialog(
       title: item.title,
       cover: item.cover,
@@ -49,6 +50,7 @@ class MemberCoinLikeItem extends StatelessWidget {
                 cover: item.cover,
                 title: item.title,
                 dimension: res!.dimension,
+                heroAnimTag: heroAnimTag,
               );
             }
           }
@@ -68,11 +70,15 @@ class MemberCoinLikeItem extends StatelessWidget {
                   return Stack(
                     clipBehavior: Clip.none,
                     children: [
-                      NetworkImgLayer(
-                        src: item.cover,
-                        width: maxWidth,
-                        height: maxHeight,
-                        borderRadius: const .vertical(top: .circular(12)),
+                      Hero(
+                        tag: heroAnimTag,
+                        transitionOnUserGestures: true,
+                        child: NetworkImgLayer(
+                          src: item.cover,
+                          width: maxWidth,
+                          height: maxHeight,
+                          borderRadius: const .vertical(top: .circular(12)),
+                        ),
                       ),
                       if (item.isCooperation == true)
                         const PBadge(

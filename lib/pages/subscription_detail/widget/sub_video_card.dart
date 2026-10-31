@@ -26,6 +26,7 @@ class SubVideoCardH extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final heroAnimTag = 'video-hero-${videoItem.bvid ?? videoItem.id}';
     void onLongPress() => imageSaveDialog(
       title: videoItem.title,
       cover: videoItem.cover,
@@ -44,6 +45,7 @@ class SubVideoCardH extends StatelessWidget {
               cover: videoItem.cover,
               title: videoItem.title,
               dimension: res!.dimension,
+              heroAnimTag: heroAnimTag,
             );
           }
         },
@@ -66,10 +68,14 @@ class SubVideoCardH extends StatelessWidget {
                     return Stack(
                       clipBehavior: Clip.none,
                       children: [
-                        NetworkImgLayer(
-                          src: videoItem.cover,
-                          width: maxWidth,
-                          height: maxHeight,
+                        Hero(
+                          tag: heroAnimTag,
+                          transitionOnUserGestures: true,
+                          child: NetworkImgLayer(
+                            src: videoItem.cover,
+                            width: maxWidth,
+                            height: maxHeight,
+                          ),
                         ),
                         PBadge(
                           text: DurationUtils.formatDuration(

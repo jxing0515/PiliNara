@@ -19,7 +19,7 @@ class VideoCardVMemberHome extends StatelessWidget {
 
   const VideoCardVMemberHome(this.videoItem, {super.key});
 
-  Future<void> onPushDetail() async {
+  Future<void> onPushDetail(String heroAnimTag) async {
     String? goto = videoItem.goto;
     switch (goto) {
       case 'bangumi':
@@ -57,6 +57,7 @@ class VideoCardVMemberHome extends StatelessWidget {
             cover: videoItem.cover,
             title: videoItem.title,
             dimension: dimension,
+            heroAnimTag: heroAnimTag,
           );
         }
         break;
@@ -70,6 +71,8 @@ class VideoCardVMemberHome extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final heroAnimTag =
+        'video-hero-${videoItem.cid ?? videoItem.bvid ?? videoItem.param}';
     void onLongPress() => imageSaveDialog(
       title: videoItem.title,
       cover: videoItem.cover,
@@ -78,7 +81,7 @@ class VideoCardVMemberHome extends StatelessWidget {
     );
     return Card(
       child: InkWell(
-        onTap: onPushDetail,
+        onTap: () => onPushDetail(heroAnimTag),
         onLongPress: onLongPress,
         onSecondaryTap: PlatformUtils.isMobile ? null : onLongPress,
         borderRadius: const .all(.circular(12)),
@@ -94,11 +97,15 @@ class VideoCardVMemberHome extends StatelessWidget {
                   return Stack(
                     clipBehavior: Clip.none,
                     children: [
-                      NetworkImgLayer(
-                        src: videoItem.cover,
-                        width: maxWidth,
-                        height: maxHeight,
-                        borderRadius: const .vertical(top: .circular(12)),
+                      Hero(
+                        tag: heroAnimTag,
+                        transitionOnUserGestures: true,
+                        child: NetworkImgLayer(
+                          src: videoItem.cover,
+                          width: maxWidth,
+                          height: maxHeight,
+                          borderRadius: const .vertical(top: .circular(12)),
+                        ),
                       ),
                       if (videoItem.duration > 0)
                         PBadge(

@@ -82,6 +82,7 @@ class _LaterSearchPageState
               cover: item.pic,
               title: item.title,
               dimension: item.dimension,
+              heroAnimTag: 'video-hero-${item.bvid ?? item.aid}',
               extraArguments: enablePlayAll
                   ? {
                       'oid': item.aid,

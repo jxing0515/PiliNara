@@ -32,6 +32,8 @@ class VideoCardHMemberVideo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final heroAnimTag =
+        'video-hero-${videoItem.cid ?? videoItem.bvid ?? videoItem.param}';
     void onLongPress() => imageSaveDialog(
       title: videoItem.title,
       cover: videoItem.cover,
@@ -71,6 +73,7 @@ class VideoCardHMemberVideo extends StatelessWidget {
                     cover: videoItem.cover,
                     title: videoItem.title,
                     isVertical: isVertical,
+                    heroAnimTag: heroAnimTag,
                   );
                 },
             child: Padding(
@@ -90,10 +93,14 @@ class VideoCardHMemberVideo extends StatelessWidget {
                         return Stack(
                           clipBehavior: Clip.none,
                           children: [
-                            NetworkImgLayer(
-                              src: videoItem.cover,
-                              width: maxWidth,
-                              height: maxHeight,
+                            Hero(
+                              tag: heroAnimTag,
+                              transitionOnUserGestures: true,
+                              child: NetworkImgLayer(
+                                src: videoItem.cover,
+                                width: maxWidth,
+                                height: maxHeight,
+                              ),
                             ),
                             if (fromViewAid == videoItem.param)
                               const Positioned.fill(

@@ -58,6 +58,8 @@ class _PopularPreciousPageState extends State<PopularPreciousPage>
                   bvid: item.bvid,
                   cid: item.cid!,
                   dimension: item.dimension,
+                  heroAnimTag:
+                      'video-hero-${item.cid ?? item.bvid ?? item.aid}',
                   extraArguments: {
                     'sourceType': SourceType.playlist,
                     'favTitle': '入站必刷',

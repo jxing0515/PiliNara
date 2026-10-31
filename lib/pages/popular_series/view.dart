@@ -74,6 +74,8 @@ class _PopularSeriesPageState extends State<PopularSeriesPage> with GridMixin {
                     bvid: item.bvid,
                     cid: item.cid!,
                     dimension: item.dimension,
+                    heroAnimTag:
+                        'video-hero-${item.cid ?? item.bvid ?? item.aid}',
                     extraArguments: {
                       'sourceType': SourceType.playlist,
                       'favTitle': '每周必看 ${config?.label ?? ''}',

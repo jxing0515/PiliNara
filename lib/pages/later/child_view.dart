@@ -84,6 +84,8 @@ class _LaterViewChildPageState extends State<LaterViewChildPage>
                       cover: videoItem.pic,
                       title: videoItem.title,
                       dimension: videoItem.dimension,
+                      heroAnimTag:
+                          'video-hero-${videoItem.bvid ?? videoItem.aid}',
                       extraArguments: _baseCtr.isPlayAll.value
                           ? {
                               'oid': videoItem.aid,

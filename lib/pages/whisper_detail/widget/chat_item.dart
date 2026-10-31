@@ -340,6 +340,7 @@ class ChatItem extends StatelessWidget {
                           cover: i['cover_url'],
                           dimension: res!.dimension,
                           // title: res.title,
+                          heroAnimTag: 'video-hero-$bvid',
                         );
                       }
                     } catch (err) {
@@ -354,10 +355,15 @@ class ChatItem extends StatelessWidget {
                 child: Row(
                   spacing: 6,
                   children: [
-                    NetworkImgLayer(
-                      width: 130,
-                      height: 73.125,
-                      src: i['cover_url'],
+                    Hero(
+                      tag:
+                          'video-hero-${IdUtils.bvRegex.firstMatch(i['jump_url'])?.group(0)}',
+                      transitionOnUserGestures: true,
+                      child: NetworkImgLayer(
+                        width: 130,
+                        height: 73.125,
+                        src: i['cover_url'],
+                      ),
                     ),
                     Expanded(
                       child: Column(
@@ -434,6 +440,7 @@ class ChatItem extends StatelessWidget {
                       cover: content['cover'],
                       dimension: res!.dimension,
                       // title: res.title,
+                      heroAnimTag: 'video-hero-$bvid',
                     );
                   }
                 } catch (err) {
@@ -447,11 +454,15 @@ class ChatItem extends StatelessWidget {
                   Stack(
                     clipBehavior: Clip.none,
                     children: [
-                      NetworkImgLayer(
-                        width: constrains.maxWidth,
-                        height: constrains.maxWidth / Style.aspectRatio16x9,
-                        src: content['cover'],
-                        borderRadius: const .vertical(top: Style.imgRadius),
+                      Hero(
+                        tag: 'video-hero-${content["bvid"]}',
+                        transitionOnUserGestures: true,
+                        child: NetworkImgLayer(
+                          width: constrains.maxWidth,
+                          height: constrains.maxWidth / Style.aspectRatio16x9,
+                          src: content['cover'],
+                          borderRadius: const .vertical(top: Style.imgRadius),
+                        ),
                       ),
                       PBadge(
                         left: 6,
@@ -504,6 +515,9 @@ class ChatItem extends StatelessWidget {
   Widget msgTypeShareV2_7(dynamic content, Color textColor) {
     String? type;
     GestureTapCallback onTap;
+    final videoHeroTag = content['source'] == 5
+        ? 'video-hero-${content['bvid'] ?? content['id']}'
+        : null;
     switch (content['source']) {
       // album
       case 2:
@@ -538,6 +552,7 @@ class ChatItem extends StatelessWidget {
               cover: content['thumb'],
               dimension: res!.dimension,
               // title: res.title,
+              heroAnimTag: videoHeroTag,
             );
           }
         };
@@ -577,11 +592,22 @@ class ChatItem extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          NetworkImgLayer(
-            width: 220,
-            height: 123.75,
-            src: content['thumb'],
-          ),
+          if (videoHeroTag == null)
+            NetworkImgLayer(
+              width: 220,
+              height: 123.75,
+              src: content['thumb'],
+            )
+          else
+            Hero(
+              tag: videoHeroTag,
+              transitionOnUserGestures: true,
+              child: NetworkImgLayer(
+                width: 220,
+                height: 123.75,
+                src: content['thumb'],
+              ),
+            ),
           const SizedBox(height: 6),
           Text(
             content['title'] ?? "",
