@@ -2028,29 +2028,14 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
       if (videoDetailController.plPlayerController.firstFrameRendered.value) {
         return const SizedBox.shrink();
       }
-      return Stack(
-        fit: StackFit.expand,
-        children: [
-          NetworkImgLayer(
-            type: .emote,
-            quality: 60,
-            src: videoDetailController.cover.value,
-            width: width,
-            height: height,
-            cacheWidth: true,
-            getPlaceHolder: () => const SizedBox.shrink(),
-          ),
-          const Center(
-            child: SizedBox(
-              width: 34,
-              height: 34,
-              child: CircularProgressIndicator(
-                strokeWidth: 3,
-                color: Colors.white,
-              ),
-            ),
-          ),
-        ],
+      return NetworkImgLayer(
+        type: .emote,
+        quality: 60,
+        src: videoDetailController.cover.value,
+        width: width,
+        height: height,
+        cacheWidth: true,
+        getPlaceHolder: () => const SizedBox.shrink(),
       );
     });
   }
@@ -2376,18 +2361,6 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
                       ),
                     ),
                   ),
-                  // 播放器未挂载时：封面上覆盖加载图标
-                  if (autoPlay && !playerBuilt)
-                    const Center(
-                      child: SizedBox(
-                        width: 34,
-                        height: 34,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 3,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
                 ],
               );
             }),
