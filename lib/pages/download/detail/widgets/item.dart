@@ -94,7 +94,7 @@ class DetailItem extends StatelessWidget {
     final theme = Theme.of(context);
     final outline = theme.colorScheme.outline;
     final cid = entry.source?.cid ?? entry.pageData?.cid;
-    final canDel = entry.isCompleted;
+    final canActInPlace = entry.isCompleted || onDelete != null;
     final enableMultiSelect = controller.enableMultiSelect.value;
     void onLongPress() {
       if (enableMultiSelect) {
@@ -108,7 +108,7 @@ class DetailItem extends StatelessWidget {
       child: InkWell(
         onTap: enableTap
             ? () async {
-                if (!canDel) {
+                if (!canActInPlace) {
                   Get.to(const DownloadingPage());
                   return;
                 }
@@ -205,12 +205,7 @@ class DetailItem extends StatelessWidget {
                       },
                     ),
                   ),
-                  PBadge(
-                    text: entry.qualityPithyDescription,
-                    right: 6.0,
-                    top: 6.0,
-                    type: PBadgeType.gray,
-                  ),
+                  entry.qaBadge,
                   if (progress != null)
                     ListenableBuilder(
                       listenable: progress!,
